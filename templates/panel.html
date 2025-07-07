@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Mangecraft Control Panel</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script>
+        var eventSource = new EventSource("/logs");
+        eventSource.onmessage = function(e) {
+            var logArea = document.getElementById("log");
+            logArea.value += e.data + "\\n";
+            logArea.scrollTop = logArea.scrollHeight;
+        };
+
+        function sendCommand() {
+            var cmdInput = document.getElementById("command");
+            fetch('/send_command', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'command=' + encodeURIComponent(cmdInput.value)
+            });
+            cmdInput.value = '';
+        }
+
+        function kickPlayer(name) {
+            fetch('/kick_player', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'player=' + encodeURIComponent(name)
+            }).then(() => alert(name + ' kicked!'));
+        }
+
+        function banPlayer(name) {
+            fetch('/ban_player', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'player=' + encodeURIComponent(name)
+            }).then(() => alert(name + ' banned!'));
+        }
+
+        function refreshPlayers() {
+            fetch('/players').then(res => res.json()).then(players => {
+                var list = document.getElementById("playersList");
+                list.innerHTML = '';
+                players.forEach(p => {
+                    var li = document.createElement('li');
+                    li.textContent = p + ' ';
+                    var kickBtn = document.createElement('button');
+                    kickBtn.textContent = 'Kick';
+                    kickBtn.onclick = () => kickPlayer(p);
+                    var banBtn = document.createElement('button');
+                    banBtn.textContent = 'Ban';
+                    banBtn.onclick = () => banPlayer(p);
+                    li.appendChild(kickBtn);
+                    li.appendChild(banBtn);
+                    list.appendChild(li);
+                });
+            });
+        }
+
+        setInterval(refreshPlayers, 10000);
+        window.onload = refreshPlayers;
+    </script>
+</head>
+<body>
+    <h1>Mangecraft Server Control Panel</h1>
+    <p>Status: <strong>{{ status }}</strong></p>
+    <p>
+        <a href="/start_server">Start Server</a> |
+        <a href="/stop_server">Stop Server</a> |
+        <a href="/logout">Logout</a>
+    </p>
+
+    <h3>Players Online:</h3>
+    <ul id="playersList"></ul>
+
+    <h3>Console:</h3>
+    <textarea id="log" rows="20" cols="100" readonly></textarea><br/>
+
+    <input type="text" id="command" placeholder="Enter console command" />
+    <button onclick="sendCommand()">Send</button>
+</body>
+</html>
