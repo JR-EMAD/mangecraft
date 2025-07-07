@@ -1,16 +1,16 @@
 from flask import Flask, render_template, request, redirect, session, Response, jsonify
 import os
-from config import load_or_setup_config
-from server_control import start_server, stop_server, send_command, get_logs, get_players, is_online
+import config
+import server_control as sc
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
-config = load_or_setup_config()
+config.config = config.load_or_setup_config()  # Load once, assign globally
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        if request.form['username'] == config['username'] and request.form['password'] == config['password']:
+        if request.form['username'] == config.config['username'] and request.form['password'] == config.config['password']:
             session['logged_in'] = True
             return redirect('/panel')
         else:
@@ -26,22 +26,22 @@ def logout():
 def panel():
     if not session.get('logged_in'):
         return redirect('/')
-    status = "Online" if is_online() else "Offline"
-    players = get_players()
+    status = "Online" if sc.is_online() else "Offline"
+    players = sc.get_players()
     return render_template('panel.html', status=status, players=players)
 
 @app.route('/start_server')
 def route_start_server():
     if not session.get('logged_in'):
         return redirect('/')
-    start_server(config['server_dir'])
+    sc.start_server()
     return redirect('/panel')
 
 @app.route('/stop_server')
 def route_stop_server():
     if not session.get('logged_in'):
         return redirect('/')
-    stop_server()
+    sc.stop_server()
     return redirect('/panel')
 
 @app.route('/send_command', methods=['POST'])
@@ -49,7 +49,7 @@ def route_send_command():
     if not session.get('logged_in'):
         return "Unauthorized", 401
     cmd = request.form.get('command', '')
-    send_command(cmd)
+    sc.send_command(cmd)
     return '', 204
 
 @app.route('/kick_player', methods=['POST'])
@@ -57,7 +57,7 @@ def kick_player():
     if not session.get('logged_in'):
         return "Unauthorized", 401
     player = request.form.get('player')
-    send_command(f"kick {player}")
+    sc.send_command(f"kick {player}")
     return jsonify(success=True)
 
 @app.route('/ban_player', methods=['POST'])
@@ -65,20 +65,20 @@ def ban_player():
     if not session.get('logged_in'):
         return "Unauthorized", 401
     player = request.form.get('player')
-    send_command(f"ban {player}")
+    sc.send_command(f"ban {player}")
     return jsonify(success=True)
 
 @app.route('/logs')
 def logs():
-    def stream():
-        yield from get_logs()
-    return Response(stream(), mimetype="text/event-stream")
+    def event_stream():
+        yield from sc.get_logs()
+    return Response(event_stream(), mimetype="text/event-stream")
 
 @app.route('/players')
 def players_api():
     if not session.get('logged_in'):
         return jsonify([])
-    return jsonify(get_players())
+    return jsonify(sc.get_players())
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=config['port'])
+    app.run(host='0.0.0.0', port=config.config['port'])

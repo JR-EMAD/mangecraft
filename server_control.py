@@ -1,79 +1,81 @@
+from mcrcon import MCRcon
 import subprocess
 import threading
-from queue import Queue
 import time
-import re
+import config
 
 mc_process = None
-log_queue = Queue()
-players = set()
+mc_process_lock = threading.Lock()
+log_lines = []
+log_lock = threading.Lock()
 
-def start_server(server_dir):
+def start_server():
     global mc_process
-    if mc_process is None or mc_process.poll() is not None:
-        mc_process = subprocess.Popen(
-            ["java", "-Xmx1G", "-jar", "server.jar", "nogui"],
-            cwd=server_dir,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            universal_newlines=True,
-            bufsize=1
-        )
-        threading.Thread(target=read_output, daemon=True).start()
-        threading.Thread(target=periodic_player_list, daemon=True).start()
+    with mc_process_lock:
+        if mc_process is None or mc_process.poll() is not None:
+            mc_process = subprocess.Popen(
+                ["java", "-Xmx1G", "-jar", config.config["server_jar"], "nogui"],
+                cwd=config.config["server_dir"],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                universal_newlines=True,
+                bufsize=1
+            )
+            threading.Thread(target=read_output, daemon=True).start()
 
 def stop_server():
-    global mc_process
-    if mc_process and mc_process.poll() is None:
-        mc_process.stdin.write("stop\n")
-        mc_process.stdin.flush()
+    try:
+        with MCRcon(config.config["server_ip"], config.config["rcon_password"], port=config.config["rcon_port"]) as mcr:
+            mcr.command("stop")
+    except Exception as e:
+        print(f"Error stopping server via RCON: {e}")
 
 def send_command(cmd):
-    if mc_process and mc_process.poll() is None:
-        mc_process.stdin.write(cmd + "\n")
-        mc_process.stdin.flush()
-
-def read_output():
-    global players
-    player_pattern = re.compile(r'\[Server thread/INFO\]: Players online: \((\d+)\) \[(.*?)\]')
-    player_list_pattern = re.compile(r'\[Server thread/INFO\]: (?:PlayerList|Connected players): (.*)')  # just in case
-    while True:
-        line = mc_process.stdout.readline()
-        if not line:
-            break
-        line = line.strip()
-        log_queue.put(line)
-
-        # Try to parse player list from output when 'list' command result comes
-        if "There are" in line and "players online:" in line:
-            # example: [Server thread/INFO]: There are 1 of a max 20 players online: JR_EMAD
-            parts = line.split(": ")
-            if len(parts) >= 2:
-                plist = parts[-1].strip()
-                if plist.lower() == "no players online":
-                    players = set()
-                else:
-                    players = set(p.strip() for p in plist.split(","))
-        # Another possible pattern (for other versions)
-        elif player_pattern.search(line):
-            match = player_pattern.search(line)
-            plist_raw = match.group(2)
-            players = set(p.strip() for p in plist_raw.split(",") if p.strip())
-
-def periodic_player_list():
-    while True:
-        if mc_process and mc_process.poll() is None:
-            send_command("list")
-        time.sleep(10)  # هر 10 ثانیه لیست پلیرها رو آپدیت کن
-
-def get_logs():
-    while True:
-        line = log_queue.get()
-        yield f"data: {line}\n\n"
+    try:
+        with MCRcon(config.config["server_ip"], config.config["rcon_password"], port=config.config["rcon_port"]) as mcr:
+            resp = mcr.command(cmd)
+            return resp
+    except Exception as e:
+        print(f"Error sending command via RCON: {e}")
+        return None
 
 def get_players():
-    return list(players)
+    try:
+        resp = send_command("list")
+        if resp and "players online:" in resp:
+            players_part = resp.split(":")[-1].strip()
+            if players_part.lower() == "no players online":
+                return []
+            return [p.strip() for p in players_part.split(",")]
+    except Exception as e:
+        print(f"Error getting players: {e}")
+    return []
 
 def is_online():
-    return mc_process and mc_process.poll() is None
+    try:
+        with MCRcon(config.config["server_ip"], config.config["rcon_password"], port=config.config["rcon_port"]) as mcr:
+            mcr.command("list")
+        return True
+    except:
+        return False
+
+def read_output():
+    global mc_process
+    while mc_process and mc_process.poll() is None:
+        line = mc_process.stdout.readline()
+        if line:
+            with log_lock:
+                log_lines.append(line.strip())
+        else:
+            time.sleep(0.1)
+
+def get_logs():
+    last_index = 0
+    while True:
+        with log_lock:
+            new_logs = log_lines[last_index:]
+            last_index = len(log_lines)
+        for line in new_logs:
+            yield f"data: {line}\n\n"
+        time.sleep(1)

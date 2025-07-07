@@ -1,6 +1,10 @@
 {
   "port": 8080,
-  "server_dir": "C:/path/to/your/minecraft/server",
-  "username": "admin",
-  "password": "yourpassword"
+  "server_dir": "C:/Users/Administrator/Desktop/server",
+  "server_jar": "server.jar",
+  "username": "root",
+  "password": "root",
+  "server_ip": "127.0.0.1",
+  "rcon_port": 25575,
+  "rcon_password": "your_rcon_password"
 }
