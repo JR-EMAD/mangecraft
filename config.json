@@ -1,0 +1,6 @@
+{
+  "port": 8080,
+  "server_dir": "C:/path/to/your/minecraft/server",
+  "username": "admin",
+  "password": "yourpassword"
+}
