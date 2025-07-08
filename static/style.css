@@ -1,42 +1,199 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+
 body {
-    font-family: Arial, sans-serif;
-    background-color: #1e1e2f;
-    color: #eee;
+    font-family: 'Roboto', Arial, sans-serif;
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    color: #f5f5f5;
     margin: 0;
-    padding: 20px;
+    padding: 30px 40px;
 }
 
 h1, h2, h3 {
+    color: #cce7ff;
+    margin-bottom: 20px;
+    font-weight: 700;
+}
+
+a {
+    color: #89c2ff;
+    text-decoration: none;
+    margin: 0 10px;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.status-online {
+    color: #4caf50;
+    font-weight: 700;
+}
+
+.status-offline {
+    color: #ef5350;
+    font-weight: 700;
+}
+
+#playersList {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 30px;
+}
+
+#playersList li {
+    background: rgba(255, 255, 255, 0.1);
+    margin-bottom: 10px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 16px;
+}
+
+.player-name {
+    font-weight: 600;
+    color: #e0e0e0;
+}
+
+/* Buttons */
+.player-button {
+    padding: 5px 14px;
+    font-size: 14px;
+    margin-left: 10px;
+    cursor: pointer;
+    background-color: #2c3e50;
+    color: #f0f0f0;
+    border: none;
+    border-radius: 6px;
+    transition: background-color 0.3s ease;
+    min-width: 65px;
+    box-shadow: 0 3px 7px rgba(0,0,0,0.3);
+}
+
+.player-button:hover {
+    background-color: #3498db;
+    color: white;
+}
+
+.player-button.ban {
+    background-color: #e74c3c;
+}
+
+.player-button.ban:hover {
+    background-color: #c0392b;
+}
+
+.player-button.kick {
+    background-color: #f39c12;
+}
+
+.player-button.kick:hover {
+    background-color: #d35400;
+}
+
+/* Console */
+#log {
+    background-color: rgba(0, 0, 0, 0.85);
+    border-radius: 8px;
+    padding: 15px;
+    font-family: monospace;
+    font-size: 14px;
+    color: #eee;
+    width: 100%;
+    height: 300px;
+    resize: none;
+    box-shadow: inset 0 0 10px #000000cc;
+    margin-bottom: 20px;
+}
+
+/* Input and button */
+#command {
+    padding: 10px 15px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    width: calc(100% - 130px);
+    margin-right: 15px;
+    box-sizing: border-box;
+}
+
+#command:focus {
+    outline: none;
+    box-shadow: 0 0 6px #3498db;
+}
+
+button#sendCmdBtn {
+    background-color: #2980b9;
+    color: white;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 25px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 3px 7px rgba(0,0,0,0.4);
+}
+
+button#sendCmdBtn:hover {
+    background-color: #1c5980;
+}
+
+/* Login container */
+.login-container {
+    width: 320px;
+    margin: 100px auto;
+    background: #27293d;
+    padding: 25px 30px;
+    border-radius: 12px;
+    box-shadow: 0 0 15px #000a;
+    text-align: center;
+}
+
+.login-container h2 {
+    margin-bottom: 25px;
+    font-weight: 700;
+    font-size: 24px;
     color: #66ccff;
 }
 
-.login-container {
-    width: 300px;
-    margin: 100px auto;
-    background: #27293d;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px #0008;
-}
-
-input, button {
+.login-container input {
     width: 100%;
-    padding: 10px;
-    margin-top: 10px;
+    padding: 12px 14px;
+    margin-bottom: 15px;
+    border-radius: 8px;
     border: none;
-    border-radius: 4px;
+    font-size: 16px;
+    box-sizing: border-box;
 }
 
-button {
+.login-container input:focus {
+    outline: none;
+    box-shadow: 0 0 8px #3498db;
+}
+
+.login-container button {
+    width: 100%;
+    padding: 12px 0;
     background-color: #3399ff;
+    border: none;
+    border-radius: 8px;
+    font-size: 18px;
     color: white;
+    font-weight: 700;
     cursor: pointer;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.4);
 }
 
-button:hover {
-    background-color: #66ccff;
+.login-container button:hover {
+    background-color: #66bbff;
 }
 
-#error {
-    color: #ff6666;
+.login-container .error {
+    color: #ff5555;
+    margin-bottom: 15px;
+    font-weight: 600;
 }

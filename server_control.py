@@ -1,3 +1,4 @@
+import re
 from mcrcon import MCRcon
 import subprocess
 import threading
@@ -8,6 +9,9 @@ mc_process = None
 mc_process_lock = threading.Lock()
 log_lines = []
 log_lock = threading.Lock()
+
+def clean_minecraft_colors(text):
+    return re.sub(r'§.', '', text)
 
 def start_server():
     global mc_process
@@ -25,31 +29,36 @@ def start_server():
             threading.Thread(target=read_output, daemon=True).start()
 
 def stop_server():
-    try:
-        with MCRcon(config.config["server_ip"], config.config["rcon_password"], port=config.config["rcon_port"]) as mcr:
-            mcr.command("stop")
-    except Exception as e:
-        print(f"Error stopping server via RCON: {e}")
+    send_command("stop")
 
 def send_command(cmd):
     try:
         with MCRcon(config.config["server_ip"], config.config["rcon_password"], port=config.config["rcon_port"]) as mcr:
-            resp = mcr.command(cmd)
-            return resp
+            response = mcr.command(cmd)
+            if response:
+                with log_lock:
+                    log_lines.append(f"> {cmd}")
+                    for line in response.strip().splitlines():
+                        log_lines.append(line)
     except Exception as e:
-        print(f"Error sending command via RCON: {e}")
-        return None
+        with log_lock:
+            log_lines.append(f"[RCON ERROR] {str(e)}")
 
 def get_players():
     try:
-        resp = send_command("list")
-        if resp and "players online:" in resp:
-            players_part = resp.split(":")[-1].strip()
-            if players_part.lower() == "no players online":
-                return []
-            return [p.strip() for p in players_part.split(",")]
+        with MCRcon(config.config["server_ip"], config.config["rcon_password"], port=config.config["rcon_port"]) as mcr:
+            response = mcr.command("list")
+            response = clean_minecraft_colors(response)
+
+            if "players online" in response:
+                if ":" in response:
+                    players_part = response.split(":")[-1].strip()
+                    if players_part.lower() == "no players online" or players_part == "":
+                        return []
+                    return [p.strip() for p in players_part.split(",")]
     except Exception as e:
-        print(f"Error getting players: {e}")
+        with log_lock:
+            log_lines.append(f"[RCON ERROR] {str(e)}")
     return []
 
 def is_online():
